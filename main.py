@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import PromptRequest, PromptContextRequest, ContentResponse
+from fastapi.responses import FileResponse
+from models import PromptRequest, PromptContextRequest, PPTRequest, ContentResponse
 from openai_client import generate_content
+from ppt_generator import create_presentation
+import os
 
 app = FastAPI(
     title="AI Content Generator API",
@@ -78,30 +81,42 @@ async def create_whitepaper(request: PromptRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating whitepaper: {str(e)}")
 
-@app.post("/ppt", response_model=ContentResponse)
-async def create_ppt(request: PromptContextRequest):
+@app.post("/ppt")
+async def create_ppt(request: PPTRequest):
     """
-    Generate PowerPoint presentation content from prompt and context.
+    Generate an actual PowerPoint (.pptx) file from prompt and context.
     
-    Takes a prompt and context to create structured PPT content with slides.
+    Takes a prompt, context, and optional template to create a downloadable presentation.
+    
+    Available templates:
+    - professional_blue (default)
+    - modern_green
+    - vibrant_orange
+    - elegant_purple
+    - corporate_gray
+    
+    If no template is specified, a random template will be used.
     """
     try:
-        system_message = """You are an expert presentation designer. Create structured PowerPoint 
-        presentation content with clear slide titles, bullet points, and speaker notes. Format the output 
-        as a series of slides with: Slide number, Title, Content (bullet points), and optional Speaker Notes. 
-        Keep content concise and visually presentable. Include a title slide and conclusion slide."""
-        
-        full_prompt = f"{request.prompt}\n\nContext: {request.context}"
-        
-        content = generate_content(
-            prompt=full_prompt,
-            system_message=system_message,
-            max_completion_tokens=8192
+        filename = create_presentation(
+            prompt=request.prompt,
+            context=request.context,
+            template_name=request.template
         )
         
-        return ContentResponse(content=content)
+        if not os.path.exists(filename):
+            raise HTTPException(status_code=500, detail="Failed to generate presentation file")
+        
+        return FileResponse(
+            path=filename,
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            filename=os.path.basename(filename),
+            headers={
+                "Content-Disposition": f"attachment; filename={os.path.basename(filename)}"
+            }
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating PPT content: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating PowerPoint: {str(e)}")
 
 @app.post("/facebook-post", response_model=ContentResponse)
 async def create_facebook_post(request: PromptContextRequest):

@@ -54,3 +54,6 @@ htmlcov/
 
 # uv
 .uv/
+
+# Generated PowerPoint files
+generated_ppts/
