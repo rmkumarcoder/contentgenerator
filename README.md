@@ -53,15 +53,29 @@ Content-Type: application/json
 ```
 
 ### PowerPoint Creator
+**Note:** This endpoint returns an actual `.pptx` file (not JSON).
+
 ```
 POST /ppt
 Content-Type: application/json
 
 {
   "prompt": "Your presentation topic",
-  "context": "Additional context or specific requirements"
+  "context": "Additional context or specific requirements",
+  "template": "professional_blue"  // Optional
 }
 ```
+
+**Available Templates:**
+- `professional_blue` - Clean, corporate blue theme
+- `modern_green` - Fresh, modern green theme
+- `vibrant_orange` - Energetic orange theme
+- `elegant_purple` - Sophisticated purple theme
+- `corporate_gray` - Professional gray theme
+
+If no template is specified, a random template will be used.
+
+**Response:** Downloads a `.pptx` file directly
 
 ### Facebook Post Creator
 ```
@@ -87,14 +101,17 @@ Content-Type: application/json
 
 ## Response Format
 
-All endpoints return a JSON response with the following structure:
-
+**For text content endpoints** (blog-post, whitepaper, facebook-post, linkedin-post):
 ```json
 {
   "content": "Generated content here...",
   "message": "Content generated successfully"
 }
 ```
+
+**For PowerPoint endpoint** (/ppt):
+- Returns a downloadable `.pptx` file directly
+- Content-Type: `application/vnd.openxmlformats-officedocument.presentationml.presentation`
 
 ## Example Usage
 
@@ -112,6 +129,14 @@ curl -X POST "http://localhost:5000/blog-post" \
 curl -X POST "http://localhost:5000/facebook-post" \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Promote a new product launch", "context": "Eco-friendly water bottle"}'
+```
+
+**PowerPoint (downloads file):**
+```bash
+curl -X POST "http://localhost:5000/ppt" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Create a presentation about AI", "context": "Focus on business applications", "template": "professional_blue"}' \
+  --output my_presentation.pptx
 ```
 
 ### Using Python
@@ -137,6 +162,20 @@ response = requests.post(
 )
 result = response.json()
 print(result["content"])
+
+# PowerPoint example (downloads file)
+response = requests.post(
+    "http://localhost:5000/ppt",
+    json={
+        "prompt": "Create a presentation about Machine Learning",
+        "context": "Cover basics, applications, and future trends",
+        "template": "modern_green"  # Optional
+    }
+)
+if response.status_code == 200:
+    with open("presentation.pptx", "wb") as f:
+        f.write(response.content)
+    print("Presentation saved as presentation.pptx")
 ```
 
 ## Interactive API Documentation
